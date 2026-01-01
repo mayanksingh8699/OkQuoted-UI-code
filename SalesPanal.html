@@ -1,0 +1,77 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body{font-family:Arial;padding:10px}
+    h3{margin:6px 0}
+    .card{border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:10px}
+    label{font-size:12px;margin-top:6px;display:block}
+    input,textarea,select{width:100%;padding:6px}
+    button{margin-top:10px;width:100%;padding:8px}
+  </style>
+</head>
+<body>
+
+<h3>OkQuoted Sales Panel</h3>
+
+<div class="card">
+  <h4>New Lead</h4>
+  <label>Owner</label><input id="owner">
+  <label>Buyer Phone *</label><input id="phone">
+  <label>Buyer Company</label><input id="company">
+  <label>City</label><input id="city">
+  <label>State</label><input id="state">
+  <label>Qty</label><input id="qty">
+  <label>Needed By</label><input type="date" id="need">
+  <label>Raw Requirement *</label><textarea id="req"></textarea>
+  <button onclick="newLead()">Create Lead</button>
+  <div id="out"></div>
+</div>
+
+<div class="card">
+  <h4>Update Stage</h4>
+  <label>Lead_ID</label><input id="lead">
+  <label>Stage</label><select id="stage"></select>
+  <label>Lost Reason</label><select id="lost"></select>
+  <label>Notes</label><input id="notes">
+  <button onclick="update()">Update</button>
+</div>
+
+<script>
+google.script.run.withSuccessHandler(l=>{
+  l.Stages.forEach(s=>stage.add(new Option(s,s)));
+  lost.add(new Option("",""));
+  l.Lost_Reasons.forEach(s=>lost.add(new Option(s,s)));
+}).getListValues();
+
+function newLead(){
+  google.script.run.withFailureHandler(e=>alert(e.message))
+  .withSuccessHandler(r=>out.innerText=`Created ${r.leadId}`)
+  .createNewLead({
+    owner:owner.value,
+    buyerPhone:phone.value,
+    buyerCompany:company.value,
+    city:city.value,
+    state:state.value,
+    qty:qty.value,
+    neededByDate:need.value,
+    rawRequirement:req.value
+  });
+}
+
+function update(){
+  google.script.run.withFailureHandler(e=>alert(e.message))
+  .withSuccessHandler(()=>alert("Updated"))
+  .updateLeadStage({
+    leadId:lead.value,
+    stage:stage.value,
+    lostReason:lost.value,
+    lostNotes:notes.value
+  });
+}
+</script>
+</body>
+</html>
