@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {font-family: Arial; margin:0; background:#f6f7fb;}
+    .app {display:grid; grid-template-columns:260px 1fr; min-height:100vh;}
+    .sidebar {background:#0f172a; color:#fff; padding:16px;}
+    .brand {font-weight:800; font-size:16px; margin-bottom:10px;}
+    .meta {font-size:12px; opacity:.85; margin-bottom:14px; line-height:1.4;}
+    .nav button {width:100%; text-align:left; border:none; background:transparent; color:#cbd5e1; padding:10px 10px; border-radius:10px; cursor:pointer; margin-bottom:6px;}
+    .nav button.active {background:#1e293b; color:#fff;}
+    .content {padding:18px;}
+    .grid2 {display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+    .grid3 {display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+    .card {background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,.05);}
+    h2 {margin:0 0 10px;}
+    h3 {margin:0 0 10px;}
+    label {font-size:12px; color:#374151; display:block; margin-top:10px;}
+    input, textarea, select {width:100%; padding:9px; margin-top:5px; border-radius:10px; border:1px solid #d1d5db; font-size:13px; box-sizing:border-box;}
+    textarea {resize:vertical;}
+    .btn {margin-top:12px; width:100%; padding:10px; border:none; border-radius:12px; background:#4f46e5; color:#fff; cursor:pointer; font-weight:700;}
+    .btn.secondary {background:#0ea5e9;}
+    .btn.ghost {background:#eef2ff; color:#1e293b; border:1px solid #c7d2fe;}
+    .btn:disabled {background:#9ca3af; cursor:not-allowed;}
+    .status {font-size:12px; margin-top:8px; color:#334155;}
+    table {width:100%; border-collapse:collapse; font-size:12px;}
+    th, td {border-bottom:1px solid #eee; padding:8px; text-align:left; vertical-align:top;}
+    tr:hover {background:#fafafa;}
+    .pill {display:inline-block; padding:3px 8px; border-radius:999px; font-size:11px; background:#eef2ff; color:#3730a3; margin-left:8px;}
+    .rowActions button {padding:6px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer;}
+    .rowActions button:hover {background:#f8fafc;}
+    .toast {position:fixed; top:16px; right:16px; z-index:9999; padding:10px 14px; border-radius:12px; color:#fff; opacity:0; transform:translateY(-10px); transition:.25s;}
+    .toast.show {opacity:1; transform:translateY(0);}
+    .toast.success {background:#16a34a;}
+    .toast.error {background:#dc2626;}
+    .toast.info {background:#2563eb;}
+    hr {border:none; border-top:1px solid #eee; margin:14px 0;}
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="sidebar">
+      <div class="brand">OkQuoted Sales Control</div>
+      <div class="meta" id="userMeta">Loading user…</div>
+
+      <div class="nav">
+        <button id="navBuyer" class="active" onclick="showView('buyer')">Buyer Requirement Entry</button>
+        <button id="navVendors" onclick="showView('vendors')">Vendors</button>
+        <button id="navLeads" onclick="showView('leads')">Lead Management</button>
+        <button id="navMatch" onclick="showView('match')">Matching Engine</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- BUYER -->
+      <div id="view-buyer" class="view">
+        <h2>Buyer Requirement Entry <span class="pill" id="lineCountPill">0 products</span></h2>
+
+        <div class="grid2">
+          <div class="card">
+            <h3>Lead Details</h3>
+
+            <label>Owner</label><input id="owner">
+            <label>Buyer Phone *</label><input id="phone">
+            <label>Buyer Company</label><input id="company">
+
+            <div class="grid2">
+              <div><label>City</label><input id="city"></div>
+              <div><label>State</label><input id="state"></div>
+            </div>
+
+            <hr>
+            <h3>Product Normalization (Add multiple products)</h3>
+
+            <label>Raw Requirement *</label>
+            <textarea id="line_req" rows="2" placeholder="e.g., safety shoes size 9, 20 pairs"></textarea>
+
+            <div class="grid2">
+              <div><label>Qty</label><input id="line_qty" placeholder="e.g., 20"></div>
+              <div><label>Needed By</label><input type="date" id="line_need"></div>
+            </div>
+
+            <label>Search Product (type & select)</label>
+            <input id="productSearch" list="productList" placeholder="e.g., Safety helmet — ratchet suspension">
+            <datalist id="productList"></datalist>
+
+            <div class="grid3">
+              <div><label>Category</label><input id="cat" readonly></div>
+              <div><label>Sub-Category</label><input id="sub" readonly></div>
+              <div><label>Sub-Sub-Category</label><input id="sub2" readonly></div>
+            </div>
+
+            <label>Product_ID</label><input id="pid" readonly>
+
+            <button class="btn secondary" onclick="addLeadLineUI()">+ Add Product</button>
+
+            <div class="status" id="buyerStatus"></div>
+          </div>
+
+          <div class="card">
+            <h3>Review Products</h3>
+            <div class="status" style="margin-bottom:8px;color:#64748b">
+              Add all products first, then click <b>Create Lead</b>.
+            </div>
+
+            <div style="overflow:auto; max-height:320px; border:1px solid #eee; border-radius:12px;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Raw Requirement</th>
+                    <th>Qty</th>
+                    <th>Needed By</th>
+                    <th>Product</th>
+                    <th>Product_ID</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="linesTable"></tbody>
+              </table>
+            </div>
+
+            <button class="btn" id="btnCreateLead" onclick="createLeadMulti()" disabled>Create Lead</button>
+            <div class="status" id="createLeadStatus"></div>
+
+            <hr>
+            <h3>Update Stage</h3>
+            <label>Lead_ID</label><input id="leadId" placeholder="L000123">
+            <label>Stage</label><select id="stage"></select>
+            <label>Lost Reason</label><select id="lost"></select>
+            <label>Lost Notes</label><input id="lostNotes">
+            <button class="btn ghost" id="btnStage" onclick="setStage()">Update Stage</button>
+            <div class="status" id="stageStatus"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VENDORS -->
+      <div id="view-vendors" class="view" style="display:none">
+        <h2>Vendors</h2>
+
+        <div class="grid2">
+          <div class="card">
+            <h3>Vendor Onboarding (Vendor Master)</h3>
+
+            <label>Vendor Name</label><input id="v_name">
+            <label>Vendor Phone</label><input id="v_phone">
+
+            <div class="grid2">
+              <div><label>City</label><input id="v_city"></div>
+              <div><label>State</label><input id="v_state"></div>
+            </div>
+
+            <label>Categories Covered (comma separated)</label>
+            <input id="v_cat" placeholder="Industrial Safety, Power Tools, Welding…">
+
+            <label>Notes</label><textarea id="v_notes" rows="3"></textarea>
+
+            <button class="btn" id="btnVendor" onclick="createVendor()">Save Vendor</button>
+            <div class="status" id="vendorStatus"></div>
+
+            <div class="status" style="margin-top:10px;color:#64748b">
+              Writes to sheet: <b>vendor_master</b>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <h3 style="margin:0">Vendor Rate Collection</h3>
+              <button class="btn ghost" style="max-width:160px;margin-top:0" onclick="refreshVendors()">Refresh Vendors</button>
+            </div>
+
+            <label>Select Vendor</label>
+            <select id="rate_vendor"></select>
+
+            <hr>
+
+            <h3 style="margin-top:0">Add Product Rate</h3>
+
+            <label>Search Product</label>
+            <input id="rate_productSearch" list="productList" placeholder="Type & select product from Product_Master">
+
+            <div class="grid2">
+              <div><label>Product_ID</label><input id="rate_pid" readonly></div>
+              <div><label>Unit (optional)</label><input id="rate_unit" placeholder="e.g., pair / pcs / box"></div>
+            </div>
+
+            <div class="grid2">
+              <div><label>Brand (optional)</label><input id="rate_brand" placeholder="e.g., Karam / Polycab"></div>
+              <div><label>Model (optional)</label><input id="rate_model" placeholder="e.g., PN521 / XYZ"></div>
+            </div>
+
+            <div class="grid3">
+              <div><label>Unit Rate *</label><input id="rate_price" placeholder="e.g., 1250"></div>
+              <div><label>MOQ</label><input id="rate_moq" placeholder="e.g., 10"></div>
+              <div><label>Lead Time (days)</label><input id="rate_lt" placeholder="e.g., 3"></div>
+            </div>
+
+            <div class="grid2">
+              <div><label>GST %</label><input id="rate_gst" placeholder="e.g., 18"></div>
+              <div><label>Valid Till</label><input type="date" id="rate_valid"></div>
+            </div>
+
+            <label>Notes</label><input id="rate_notes" placeholder="Any rate condition / freight extra / etc">
+
+            <button class="btn secondary" onclick="addRateLineUI()">+ Add Product</button>
+
+            <div style="overflow:auto; max-height:220px; border:1px solid #eee; border-radius:12px; margin-top:12px;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th>Brand/Model</th>
+                    <th>Rate</th>
+                    <th>Unit</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="ratesTable"></tbody>
+              </table>
+            </div>
+
+            <button class="btn" id="btnSaveRates" onclick="saveRates()" disabled>Save Rates</button>
+            <div class="status" id="ratesStatus"></div>
+
+            <div class="status" style="margin-top:10px;color:#64748b">
+              Writes to sheet: <b>vendor_rates</b>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADS -->
+      <div id="view-leads" class="view" style="display:none">
+        <h2>Lead Management</h2>
+        <div class="card">
+          <div style="display:flex;gap:10px;align-items:center;justify-content:space-between">
+            <h3 style="margin:0">Recent Leads</h3>
+            <button class="btn" style="max-width:180px" id="btnRefresh" onclick="loadLeads()">Refresh</button>
+          </div>
+          <div class="status" id="leadsStatus"></div>
+          <div style="overflow:auto;margin-top:10px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Lead_ID</th>
+                  <th>Created</th>
+                  <th>Stage</th>
+                  <th>Owner</th>
+                  <th>Company</th>
+                  <th>Phone</th>
+                  <th>City</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody id="leadTable"></tbody>
+            </table>
+          </div>
+          <div class="status" style="margin-top:10px">
+            Tip: click any row to auto-fill Lead_ID in the stage update form.
+          </div>
+        </div>
+      </div>
+
+      <!-- MATCH -->
+      <div id="view-match" class="view" style="display:none">
+        <h2>Matching Engine</h2>
+        <div class="card" style="max-width:700px">
+          <h3>Request Matching (Queue)</h3>
+          <label>Lead_ID</label><input id="m_lead" placeholder="L000123">
+          <button class="btn" id="btnMatch" onclick="requestMatching()">Run / Queue Matching</button>
+          <div class="status" id="matchStatus"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    let TAX = [];
+    let BY_NAME = {};
+    let LEAD_LINES = [];
+    let RATE_LINES = [];
+    let VENDORS = [];
+
+    function toast(msg, type="info"){
+      const t=document.getElementById("toast");
+      t.textContent=msg;
+      t.className=`toast ${type} show`;
+      setTimeout(()=>t.className="toast", 2500);
+    }
+
+    function setBtn(btnId, disabled, text){
+      const b=document.getElementById(btnId);
+      if(!b) return;
+      b.disabled=disabled;
+      if(text) b.textContent=text;
+    }
+
+    function showView(key){
+      const map = {buyer:"Buyer", vendors:"Vendors", leads:"Leads", match:"Match"};
+      Object.keys(map).forEach(k=>{
+        document.getElementById(`view-${k}`).style.display = (k===key) ? "" : "none";
+        document.getElementById(`nav${map[k]}`).classList.toggle("active", k===key);
+      });
+      if(key==="leads") loadLeads();
+      if(key==="vendors") refreshVendors();
+    }
+
+    // session
+    google.script.run.withSuccessHandler(info=>{
+      document.getElementById("userMeta").innerHTML =
+        `<b>${info.email || "unknown"}</b><br>Role: <b>${info.role}</b>`;
+      const prefix = (info.email || "").split("@")[0] || "";
+      if(prefix) document.getElementById("owner").value = prefix;
+    }).getSessionInfo();
+
+    // lists
+    function loadLists(){
+      google.script.run.withSuccessHandler((lists)=>{
+        const stages = lists["Stages"] || ["New Lead","Qualified","Sourcing","Quoted","Negotiation","Won","Lost"];
+        const lost = lists["Lost_Reasons"] || ["Price","Lead time","Payment/Credit","Specs mismatch","No response","Vendor unavailable","Cancelled"];
+
+        stage.innerHTML="";
+        stages.forEach(s=>stage.add(new Option(s,s)));
+
+        const lostSel = document.getElementById("lost");
+        lostSel.innerHTML="";
+        lostSel.add(new Option("",""));
+        lost.forEach(s=>lostSel.add(new Option(s,s)));
+      }).getListValues();
+    }
+    loadLists();
+
+    // taxonomy
+    function loadTaxonomy(){
+      google.script.run.withSuccessHandler(res=>{
+        TAX = res.rows || [];
+        BY_NAME = {};
+        const dl = document.getElementById("productList");
+        dl.innerHTML = "";
+
+        TAX.forEach(r=>{
+          const key = (r.productName || "").toLowerCase().trim();
+          if(!key) return;
+          BY_NAME[key] = r;
+
+          const opt = document.createElement("option");
+          opt.value = r.productName;
+          dl.appendChild(opt);
+        });
+
+        toast(`Loaded ${TAX.length} products`, "info");
+      }).getTaxonomy();
+    }
+    loadTaxonomy();
+
+    // product pick (buyer)
+    document.getElementById("productSearch").addEventListener("input", (e)=>{
+      const v = (e.target.value || "").trim().toLowerCase();
+      const hit = BY_NAME[v];
+      if(hit){
+        cat.value = hit.category || "";
+        sub.value = hit.subCategory || "";
+        sub2.value = hit.subSubCategory || "";
+        pid.value = hit.productId || "";
+      }
+    });
+
+    // product pick (rates)
+    document.getElementById("rate_productSearch").addEventListener("input", (e)=>{
+      const v = (e.target.value || "").trim().toLowerCase();
+      const hit = BY_NAME[v];
+      if(hit){
+        rate_pid.value = hit.productId || "";
+      }
+    });
+
+    function renderLeadLines(){
+      const tb = document.getElementById("linesTable");
+      tb.innerHTML = "";
+
+      LEAD_LINES.forEach((l, idx)=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${idx+1}</td>
+          <td>${escapeHtml(l.rawRequirement || "")}</td>
+          <td>${escapeHtml(l.qty || "")}</td>
+          <td>${escapeHtml(l.neededByDate || "")}</td>
+          <td>${escapeHtml(l.productName || "")}</td>
+          <td>${escapeHtml(l.productId || "")}</td>
+          <td class="rowActions"><button onclick="removeLeadLine(${idx})">Remove</button></td>
+        `;
+        tb.appendChild(tr);
+      });
+
+      document.getElementById("lineCountPill").textContent = `${LEAD_LINES.length} products`;
+      setBtn("btnCreateLead", LEAD_LINES.length===0, "Create Lead");
+    }
+
+    function addLeadLineUI(){
+      const rawRequirement = (line_req.value || "").trim();
+      const productName = (productSearch.value || "").trim();
+      const productId = (pid.value || "").trim();
+
+      if(!rawRequirement) return toast("Raw Requirement is required for the line", "error");
+      if(!productName) return toast("Select a Product from autosuggest", "error");
+
+      LEAD_LINES.push({
+        rawRequirement,
+        qty: (line_qty.value || "").trim(),
+        neededByDate: (line_need.value || "").trim(),
+        category: (cat.value || "").trim(),
+        subCategory: (sub.value || "").trim(),
+        subSubCategory: (sub2.value || "").trim(),
+        productName,
+        productId: productId || "UNMAPPED"
+      });
+
+      // clear line inputs
+      ["line_req","line_qty","line_need","productSearch","cat","sub","sub2","pid"].forEach(id=>document.getElementById(id).value="");
+      toast("Added product line ✅", "success");
+      renderLeadLines();
+    }
+
+    function removeLeadLine(i){
+      LEAD_LINES.splice(i,1);
+      renderLeadLines();
+    }
+
+    function createLeadMulti(){
+      if(!owner.value.trim() || !phone.value.trim()) return toast("Owner and Buyer Phone are required", "error");
+      if(LEAD_LINES.length===0) return toast("Add at least 1 product", "error");
+
+      setBtn("btnCreateLead", true, "Saving…");
+      createLeadStatus.textContent = "Saving lead + lines…";
+
+      google.script.run
+        .withFailureHandler(e=>{
+          toast(e.message, "error");
+          createLeadStatus.textContent = "❌ Failed";
+          setBtn("btnCreateLead", false, "Create Lead");
+        })
+        .withSuccessHandler(r=>{
+          toast(`Saved ✅ Lead ${r.leadId}`, "success");
+          createLeadStatus.textContent = `✅ Saved (${r.leadId}) with ${r.lineIds.length} lines`;
+
+          // reset
+          ["phone","company","city","state","leadId"].forEach(id=>document.getElementById(id).value="");
+          LEAD_LINES = [];
+          renderLeadLines();
+          loadLeads();
+          setBtn("btnCreateLead", false, "Create Lead");
+        })
+        .createNewLead({
+          owner: owner.value.trim(),
+          buyerPhone: phone.value.trim(),
+          buyerCompany: company.value.trim(),
+          city: city.value.trim(),
+          state: state.value.trim(),
+          lines: LEAD_LINES
+        });
+    }
+
+    function setStage(){
+      setBtn("btnStage", true, "Updating…");
+      stageStatus.textContent = "Updating stage…";
+
+      google.script.run
+        .withFailureHandler(e=>{
+          toast(e.message, "error");
+          stageStatus.textContent = "❌ Failed";
+          setBtn("btnStage", false, "Update Stage");
+        })
+        .withSuccessHandler(()=>{
+          toast("Updated ✅ Stage saved", "success");
+          stageStatus.textContent = "✅ Updated";
+          setBtn("btnStage", false, "Update Stage");
+          loadLeads();
+        })
+        .updateLeadStage({
+          leadId: leadId.value.trim(),
+          stage: stage.value,
+          lostReason: lost.value,
+          lostNotes: lostNotes.value
+        });
+    }
+
+    function loadLeads(){
+      setBtn("btnRefresh", true, "Loading…");
+      leadsStatus.textContent = "Loading recent leads…";
+
+      google.script.run.withSuccessHandler(res=>{
+        const rows = Array.isArray(res) ? res : (res && res.leads) ? res.leads : [];
+        const tb = document.getElementById("leadTable");
+        tb.innerHTML = "";
+
+        rows.forEach(r=>{
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${escapeHtml(r.leadId||"")}</td>
+            <td>${r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</td>
+            <td>${escapeHtml(r.stage||"")}</td>
+            <td>${escapeHtml(r.owner||"")}</td>
+            <td>${escapeHtml(r.buyerCompany||"")}</td>
+            <td>${escapeHtml(r.buyerPhone||"")}</td>
+            <td>${escapeHtml(r.city||"")}</td>
+            <td>${escapeHtml(r.state||"")}</td>
+          `;
+          tr.onclick = () => {
+            showView("buyer");
+            document.getElementById("leadId").value = r.leadId || "";
+            toast(`Selected ${r.leadId}`, "info");
+          };
+          tb.appendChild(tr);
+        });
+
+        leadsStatus.textContent = `Showing ${rows.length} latest leads`;
+        setBtn("btnRefresh", false, "Refresh");
+      }).listRecentLeads(30);
+    }
+
+    function createVendor(){
+      setBtn("btnVendor", true, "Saving…");
+      vendorStatus.textContent = "Saving vendor…";
+
+      google.script.run
+        .withFailureHandler(e=>{
+          toast(e.message, "error");
+          vendorStatus.textContent = "❌ Failed";
+          setBtn("btnVendor", false, "Save Vendor");
+        })
+        .withSuccessHandler(r=>{
+          toast(`Vendor Saved ✅ ${r.vendorId}`, "success");
+          vendorStatus.textContent = `✅ Saved (${r.vendorId})`;
+          setBtn("btnVendor", false, "Save Vendor");
+          ["v_name","v_phone","v_city","v_state","v_cat","v_notes"].forEach(id=>document.getElementById(id).value="");
+          refreshVendors();
+        })
+        .createVendorMaster({
+          vendorName: v_name.value,
+          vendorPhone: v_phone.value,
+          city: v_city.value,
+          state: v_state.value,
+          categoriesCovered: v_cat.value,
+          notes: v_notes.value
+        });
+    }
+
+    function refreshVendors(){
+      google.script.run.withSuccessHandler(list=>{
+        VENDORS = list || [];
+        const sel = document.getElementById("rate_vendor");
+        sel.innerHTML = "";
+        sel.add(new Option("-- Select Vendor --",""));
+
+        VENDORS.forEach(v=>{
+          sel.add(new Option(`${v.vendorName} (${v.vendorId})`, v.vendorId));
+        });
+
+        toast(`Loaded ${VENDORS.length} vendors`, "info");
+      }).listVendors();
+    }
+
+    function renderRateLines(){
+      const tb = document.getElementById("ratesTable");
+      tb.innerHTML = "";
+      RATE_LINES.forEach((l, idx)=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${idx+1}</td>
+          <td>${escapeHtml(l.productName||"")}<br><span style="color:#64748b">${escapeHtml(l.productId||"")}</span></td>
+          <td>${escapeHtml((l.brand||"") + (l.model?(" / "+l.model):""))}</td>
+          <td>${escapeHtml(l.unitRate||"")}</td>
+          <td>${escapeHtml(l.unit||"")}</td>
+          <td class="rowActions"><button onclick="removeRateLine(${idx})">Remove</button></td>
+        `;
+        tb.appendChild(tr);
+      });
+
+      setBtn("btnSaveRates", RATE_LINES.length===0 || !rate_vendor.value, "Save Rates");
+    }
+
+    function addRateLineUI(){
+      if(!rate_vendor.value) return toast("Select vendor first", "error");
+
+      const productName = (rate_productSearch.value || "").trim();
+      const productId = (rate_pid.value || "").trim();
+      const price = (rate_price.value || "").trim();
+      if(!productName) return toast("Select a Product from autosuggest", "error");
+      if(!price) return toast("Unit Rate is required", "error");
+
+      RATE_LINES.push({
+        productName,
+        productId,
+        unit: (rate_unit.value || "").trim(),
+        brand: (rate_brand.value || "").trim(),
+        model: (rate_model.value || "").trim(),
+        unitRate: price,
+        moq: (rate_moq.value || "").trim(),
+        leadTimeDays: (rate_lt.value || "").trim(),
+        gstPercent: (rate_gst.value || "").trim(),
+        validTill: (rate_valid.value || "").trim(),
+        notes: (rate_notes.value || "").trim()
+      });
+
+      // clear rate inputs
+      ["rate_productSearch","rate_pid","rate_unit","rate_brand","rate_model","rate_price","rate_moq","rate_lt","rate_gst","rate_valid","rate_notes"]
+        .forEach(id=>document.getElementById(id).value="");
+
+      toast("Added rate line ✅", "success");
+      renderRateLines();
+    }
+
+    function removeRateLine(i){
+      RATE_LINES.splice(i,1);
+      renderRateLines();
+    }
+
+    function saveRates(){
+      if(!rate_vendor.value) return toast("Select vendor", "error");
+      if(RATE_LINES.length===0) return toast("Add at least 1 rate line", "error");
+
+      setBtn("btnSaveRates", true, "Saving…");
+      ratesStatus.textContent = "Saving vendor rates…";
+
+      google.script.run
+        .withFailureHandler(e=>{
+          toast(e.message, "error");
+          ratesStatus.textContent = "❌ Failed";
+          setBtn("btnSaveRates", false, "Save Rates");
+        })
+        .withSuccessHandler(r=>{
+          toast(`Saved ✅ ${r.rateIds.length} rates`, "success");
+          ratesStatus.textContent = `✅ Saved (${r.rateIds.length} rates)`;
+          RATE_LINES = [];
+          renderRateLines();
+          setBtn("btnSaveRates", false, "Save Rates");
+        })
+        .saveVendorRates({
+          vendorId: rate_vendor.value,
+          lines: RATE_LINES
+        });
+    }
+
+    function requestMatching(){
+      setBtn("btnMatch", true, "Queueing…");
+      matchStatus.textContent = "Queueing matching request…";
+
+      google.script.run
+        .withFailureHandler(e=>{
+          toast(e.message, "error");
+          matchStatus.textContent = "❌ Failed";
+          setBtn("btnMatch", false, "Run / Queue Matching");
+        })
+        .withSuccessHandler(r=>{
+          toast(`Queued ✅ Request ${r.requestId}`, "success");
+          matchStatus.textContent = `✅ Queued (${r.requestId})`;
+          setBtn("btnMatch", false, "Run / Queue Matching");
+        })
+        .requestMatching({ leadId: m_lead.value });
+    }
+
+    function escapeHtml(s){
+      return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    // init
+    renderLeadLines();
+    renderRateLines();
+  </script>
+</body>
+</html>
